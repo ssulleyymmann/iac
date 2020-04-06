@@ -1,0 +1,3 @@
+path.data: /iac/log/compose/logstash/data/
+path.logs: /iac/log/compose/logstash/logs/
+log.level: error

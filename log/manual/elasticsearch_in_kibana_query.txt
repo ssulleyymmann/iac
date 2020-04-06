@@ -1,0 +1,152 @@
+## policy phases check interval
+PUT /_cluster/settings
+{
+    "persistent" : {
+        "indices.lifecycle.poll_interval": "10m"
+    }
+}
+
+GET /search-logs
+
+
+
+PUT logs-2020.01.11-000002/_settings
+{
+  "index.mapping.total_fields.limit": 5000,
+  "index.blocks.read_only_allow_delete": "false"
+}
+
+GET /_ilm/status
+
+
+
+POST logs-2020.01.11-000002/_ilm/retry
+
+GET logs-2020.01.11-000002/_ilm/explain
+
+DELETE /logstash-2020.01.09-000002
+
+
+
+
+GET /logs-2020.01.11-000002/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+## Active Log Template
+PUT _template/active-logs
+{
+   "index_patterns": "logs-*",
+   "settings": {
+      "number_of_shards": 5,
+      "number_of_replicas": 0,
+      "index.lifecycle.name": "log-policy",
+      "index.lifecycle.rollover_alias": "write-logs",
+      "index.mapping.total_fields.limit": 5000,
+      "index.blocks.read_only_allow_delete": "false"
+    
+
+   },
+   "mappings": {
+         "properties": {
+            "Request": {
+               "properties": {
+                  "Duration": {
+                     "type": "long"
+                  }
+               }
+            }
+         }
+      
+   },
+   "aliases": {
+      "search-logs": {}
+   }
+}
+
+
+## Inactive Log Template
+PUT _template/inactive-logs
+{
+  "index_patterns": "shrink-*",
+  "settings": {
+    "number_of_shards":   1,
+    "number_of_replicas": 0,
+    "codec": "best_compression",
+    "index.lifecycle.name": "shrink-policy"
+  }
+}
+
+
+## Aktif log policy
+PUT _ilm/policy/log-policy
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "actions": {
+          "rollover": {
+            "max_size": "40gb",
+            "max_age": "1d"
+          }
+        }
+      },
+      "warm": {
+        "min_age": "10s",
+        "actions": {
+          "allocate": {
+            "number_of_replicas": 0
+          },
+          "shrink": {
+            "number_of_shards": 1
+          },
+          "forcemerge": {
+            "max_num_segments": 1
+          }
+        }
+      },
+      "cold": {
+        "min_age": "1d",
+        "actions": {
+          "allocate": {
+            "number_of_replicas": 0,
+            "include": {},
+            "exclude": {},
+            "require": {}
+          }
+        }
+      },
+      
+      "delete": {
+        "min_age": "1d",
+        "actions": {
+          "delete": {}
+        }
+      }
+    }
+  }
+}
+
+PUT /%3Clogs-%7Bnow%2Fd%7D-00001%3E
+{
+  "aliases": {
+    "write-logs": {
+      "is_write_index": true
+    }
+  }
+}
+
+
+GET /logs-2020.01.10-00001/_alias
+
+
+POST /logs-2020.01.10-00001/_open
+
+GET _ilm/status
+
+POST _ilm/stop
+
+POST _ilm/start

@@ -1,0 +1,8 @@
+network.bind_host: 0.0.0.0
+node.master: true
+node.data: true
+transport.host: localhost
+transport.tcp.port: 9300
+index.store.type: mmapfs
+path.data: /iac/log/compose/elasticsearch/data/
+path.logs: /iac/log/compose/elasticsearch/logs/
